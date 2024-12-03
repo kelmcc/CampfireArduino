@@ -17,12 +17,12 @@ int dataPins[NUM_STRIPS] = {7, 6, 5, 4};                 // Data pins for each s
 CRGB *leds[NUM_STRIPS];
 
 // Fire simulation parameters
-#define FireAnimationSpeed 300
+#define FireAnimationSpeed 100
 
 #define FireCooldownMin 8
 #define FireCooldownMax 30
-#define SparkStartingHeatMin 100
-#define SparkStartingHeatMax 150
+#define SparkStartingHeatMin 190
+#define SparkStartingHeatMax 200
 #define SparkLEDIndex 0
 
 #define BaseHeatTransferPercentageMin 30
@@ -93,9 +93,9 @@ void fireEffect(int stripIndex, byte **heat)
     }
 
     // Heat drifts upward and diffuses within the strip
-    for (int i = numLeds - 1; i >= 2; i--)
+    for (int i = numLeds - 1; i >= 1; i--)
     {
-        heat[stripIndex][i] = (heat[stripIndex][i - 1] + heat[stripIndex][i - 2] + heat[stripIndex][i - 2]) / 3;
+        heat[stripIndex][i] = (heat[stripIndex][i - 1] + heat[stripIndex][i - 1]) / 2;
     }
 
     // Heat transfer between strips based on distances
