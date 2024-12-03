@@ -9,7 +9,7 @@
 
 // Define the number of LEDs for each strip, their radii, and their data pins
 int numLedsPerStrip[NUM_STRIPS] = {20, 20, 20, 20};      // Adjust for your setup
-float stripRadii[NUM_STRIPS] = {10.0, 20.0, 10.0, 30.0}; // Radii for each strip (in cm)
+float stripRadii[NUM_STRIPS] = {10.0, 20.0, 10.0, 10.0}; // Radii for each strip (in cm)
 float stripAngles[NUM_STRIPS] = {0, 90, 180, 270};       // Angles for each strip (degrees)
 int dataPins[NUM_STRIPS] = {7, 6, 5, 4};                 // Data pins for each strip
 
@@ -20,13 +20,16 @@ CRGB *leds[NUM_STRIPS];
 #define FireAnimationSpeed 300
 
 #define FireCooldownMin 8
-#define FireCooldownMax 45
-#define SparkStartingHeatMin 30
-#define SparkStartingHeatMax 50
-#define SparkLEDIndex 1
+#define FireCooldownMax 30
+#define SparkStartingHeatMin 100
+#define SparkStartingHeatMax 150
+#define SparkLEDIndex 0
+
+#define BaseHeatTransferPercentageMin 30
+#define BaseHeatTransferPercentageMax 50
 
 #define CenterSparkRate 120
-#define MAX_DISTANCE 20.0 // Maximum distance for heat transfer
+#define MAX_DISTANCE 50.0 // Maximum distance for heat transfer
 
 void setup()
 {
@@ -101,16 +104,31 @@ void fireEffect(int stripIndex, byte **heat)
         if (otherStrip == stripIndex)
             continue; // Skip self
 
-        for (int i = 0; i < numLeds; i++)
+        float dist = calculateDistance(stripIndex, otherStrip);
+        if (dist < MAX_DISTANCE)
         {
-            for (int j = 0; j < numLedsPerStrip[otherStrip]; j++)
+            // Scale heat transfer percentage based on distance (closer = more transfer)
+            float transferFactor = 1.0 - (dist / MAX_DISTANCE);
+            transferFactor = constrain(transferFactor, 0.0, 1.0); // Ensure between 0 and 1
+
+            // Iterate over the LEDs in the current strip
+            for (int i = 0; i < numLedsPerStrip[stripIndex]; i++)
             {
-                float dist = calculateDistance(stripIndex, i, otherStrip, j);
-                if (dist < MAX_DISTANCE)
+                if (i >= numLedsPerStrip[otherStrip])
                 {
-                    byte transferAmount = heat[otherStrip][j] / 10; // Scale transfer based on distance
-                    heat[stripIndex][i] = qadd8(heat[stripIndex][i], transferAmount);
+                    // Stop the loop if the current index exceeds the other strip's LEDs
+                    break;
                 }
+
+                // Transfer heat only if the other strip has an LED at this index
+                int baseTransfer = random(BaseHeatTransferPercentageMin, BaseHeatTransferPercentageMax);
+                byte transferAmount = heat[stripIndex][i] * baseTransfer * transferFactor / 100;
+
+                // Remove heat from this strip
+                heat[stripIndex][i] = qsub8(heat[stripIndex][i], transferAmount);
+
+                // Add heat to the other strip
+                heat[otherStrip][i] = qadd8(heat[otherStrip][i], transferAmount);
             }
         }
     }
@@ -122,19 +140,19 @@ void fireEffect(int stripIndex, byte **heat)
     }
 }
 
-float calculateDistance(int strip1, int led1, int strip2, int led2)
+float calculateDistance(int strip1, int strip2)
 {
-    // Calculate positions in 2D space for each LED
+    // Calculate positions in 2D space for each strip's center
     float angle1 = radians(stripAngles[strip1]);
     float angle2 = radians(stripAngles[strip2]);
 
-    float x1 = stripRadii[strip1] * cos(angle1) + led1 * (stripRadii[strip1] / numLedsPerStrip[strip1]);
+    float x1 = stripRadii[strip1] * cos(angle1);
     float y1 = stripRadii[strip1] * sin(angle1);
 
-    float x2 = stripRadii[strip2] * cos(angle2) + led2 * (stripRadii[strip2] / numLedsPerStrip[strip2]);
+    float x2 = stripRadii[strip2] * cos(angle2);
     float y2 = stripRadii[strip2] * sin(angle2);
 
-    // Euclidean distance
+    // Euclidean distance between strip centers
     return sqrt(sq(x2 - x1) + sq(y2 - y1));
 }
 
