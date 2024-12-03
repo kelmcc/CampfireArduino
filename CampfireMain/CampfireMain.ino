@@ -5,13 +5,14 @@
 #define COLOR_ORDER BRG // Set the color order (BRG is typical for WS2811)
 
 // Configuration for strips
-#define NUM_STRIPS 4
+#define NUM_STRIPS 20
 
 // Define the number of LEDs for each strip, their radii, and their data pins
-int numLedsPerStrip[NUM_STRIPS] = {20, 20, 16, 16};      // Adjust for your setup
-float stripRadii[NUM_STRIPS] = {10.0, 20.0, 10.0, 10.0}; // Radii for each strip (in cm)
-float stripAngles[NUM_STRIPS] = {0, 90, 180, 270};       // Angles for each strip (degrees)
-int dataPins[NUM_STRIPS] = {7, 6, 5, 4};                 // Data pins for each strip
+int numLedsPerStrip[NUM_STRIPS] = {16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16, 16}; // Adjust for your setup
+
+float stripRadii[NUM_STRIPS] = {9, 10, 10, 20, 21, 25, 21, 28, 21, 41, 35, 40, 31, 38, 39, 33, 45, 29, 42, 29};                   // Radii for each strip (in cm)
+float stripAngles[NUM_STRIPS] = {90, 332, 221, 171, 292, 262, 26, 71, 120, 252, 278, 304, 330, 96, 131, 149, 169, 194, 209, 230}; // Angles for each strip (degrees)
+int dataPins[NUM_STRIPS] = {17, 2, 7, 11, 3, 5, 19, 18, 16, 6, 4, 1, 0, 15, 14, 13, 12, 9, 10, 8};                                // Data pins for each strip
 
 // Define LED arrays for each strip
 CRGB *leds[NUM_STRIPS];
@@ -36,14 +37,14 @@ CRGB *leds[NUM_STRIPS];
 #define BaseHeatTransferPercentageMax 10
 
 #define HeatRemovalFactorMin 1 // 0 - 1
-#define HeatRemovalFactorMax 1   // 0 - 1
+#define HeatRemovalFactorMax 1 // 0 - 1
 
 #define CenterSparkRate 255 // lower value is less chance 0 - 255
 #define CenterSparkIndex 0
 
 #define RandomOtherSpark 60 // lower value is less chance 0 - 255
 
-#define MAX_DISTANCE 50.0 // Maximum distance for heat transfer
+#define MAX_DISTANCE 25.0 // Maximum distance for heat transfer
 
 void setup()
 {
@@ -54,6 +55,45 @@ void setup()
         // Initialize each strip with its corresponding data pin and LED count
         switch (dataPins[strip])
         {
+        case 20:
+            FastLED.addLeds<LED_TYPE, 20, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 19:
+            FastLED.addLeds<LED_TYPE, 19, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 18:
+            FastLED.addLeds<LED_TYPE, 18, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 17:
+            FastLED.addLeds<LED_TYPE, 17, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 16:
+            FastLED.addLeds<LED_TYPE, 16, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 15:
+            FastLED.addLeds<LED_TYPE, 15, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 14:
+            FastLED.addLeds<LED_TYPE, 14, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 13:
+            FastLED.addLeds<LED_TYPE, 13, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 12:
+            FastLED.addLeds<LED_TYPE, 12, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 11:
+            FastLED.addLeds<LED_TYPE, 11, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 10:
+            FastLED.addLeds<LED_TYPE, 10, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 9:
+            FastLED.addLeds<LED_TYPE, 9, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 8:
+            FastLED.addLeds<LED_TYPE, 8, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
         case 7:
             FastLED.addLeds<LED_TYPE, 7, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
             break;
@@ -65,6 +105,18 @@ void setup()
             break;
         case 4:
             FastLED.addLeds<LED_TYPE, 4, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 3:
+            FastLED.addLeds<LED_TYPE, 3, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 2:
+            FastLED.addLeds<LED_TYPE, 2, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 1:
+            FastLED.addLeds<LED_TYPE, 1, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            break;
+        case 0:
+            FastLED.addLeds<LED_TYPE, 0, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
             break;
         }
     }
@@ -117,8 +169,7 @@ void fireEffect(int stripIndex, byte **heat)
         }
         else
         {
-          heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownMin, FireCooldownMax));
-            
+            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownMin, FireCooldownMax));
         }
     }
 
