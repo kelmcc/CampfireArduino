@@ -8,7 +8,7 @@
 #define NUM_STRIPS 4
 
 // Define the number of LEDs for each strip, their radii, and their data pins
-int numLedsPerStrip[NUM_STRIPS] = {20, 20, 20, 20};      // Adjust for your setup
+int numLedsPerStrip[NUM_STRIPS] = {20, 20, 16, 16};      // Adjust for your setup
 float stripRadii[NUM_STRIPS] = {10.0, 20.0, 10.0, 10.0}; // Radii for each strip (in cm)
 float stripAngles[NUM_STRIPS] = {0, 90, 180, 270};       // Angles for each strip (degrees)
 int dataPins[NUM_STRIPS] = {7, 6, 5, 4};                 // Data pins for each strip
@@ -17,18 +17,32 @@ int dataPins[NUM_STRIPS] = {7, 6, 5, 4};                 // Data pins for each s
 CRGB *leds[NUM_STRIPS];
 
 // Fire simulation parameters
-#define FireAnimationSpeed 100
+#define FireAnimationSpeed 30
 
-#define FireCooldownMin 8
-#define FireCooldownMax 30
-#define SparkStartingHeatMin 190
-#define SparkStartingHeatMax 200
+#define FireCooldownBandTopMin 20
+#define FireCooldownBandTopMax 30
+
+#define FireCooldownBandPercentage 0.6 // 0 - 1
+
+#define FireCooldownMin 5
+#define FireCooldownMax 10
+
+#define SparkStartingHeatMin 230
+#define SparkStartingHeatMax 255
+
 #define SparkLEDIndex 0
 
-#define BaseHeatTransferPercentageMin 30
-#define BaseHeatTransferPercentageMax 50
+#define BaseHeatTransferPercentageMin 5
+#define BaseHeatTransferPercentageMax 10
 
-#define CenterSparkRate 120
+#define HeatRemovalFactorMin 1 // 0 - 1
+#define HeatRemovalFactorMax 1   // 0 - 1
+
+#define CenterSparkRate 255 // lower value is less chance 0 - 255
+#define CenterSparkIndex 0
+
+#define RandomOtherSpark 60 // lower value is less chance 0 - 255
+
 #define MAX_DISTANCE 50.0 // Maximum distance for heat transfer
 
 void setup()
@@ -63,12 +77,18 @@ void loop()
 {
     static byte **heat = allocateHeatArray();
 
+    // Center fuel
     if (random8() < CenterSparkRate)
     {
-        for (int strip = 1; strip <= 2; strip++)
-        {
-            heat[strip][SparkLEDIndex] = qadd8(heat[strip][SparkLEDIndex], random8(SparkStartingHeatMin, SparkStartingHeatMax));
-        }
+        heat[CenterSparkIndex][SparkLEDIndex] = qadd8(heat[CenterSparkIndex][SparkLEDIndex], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+    }
+
+    // Random spark somewhere else
+    if (random8() < RandomOtherSpark)
+    {
+        int randomStrip = random(0, NUM_STRIPS);
+        int ledSpark = random(0, 5);
+        heat[randomStrip][ledSpark] = qadd8(heat[randomStrip][ledSpark], random8(SparkStartingHeatMin, SparkStartingHeatMax));
     }
 
     // Update fire simulation with heat transfer
@@ -86,10 +106,20 @@ void fireEffect(int stripIndex, byte **heat)
 {
     int numLeds = numLedsPerStrip[stripIndex];
 
+    int coolDownTopBand = numLeds * FireCooldownBandPercentage;
+
     // Cool down each LED
-    for (int i = 0; i < numLeds; i++)
+    for (int i = numLeds - 1; i >= 0; i--)
     {
-        heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownMin, FireCooldownMax));
+        if (i >= coolDownTopBand)
+        {
+            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownBandTopMin, FireCooldownBandTopMax));
+        }
+        else
+        {
+          heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownMin, FireCooldownMax));
+            
+        }
     }
 
     // Heat drifts upward and diffuses within the strip
@@ -124,8 +154,9 @@ void fireEffect(int stripIndex, byte **heat)
                 int baseTransfer = random(BaseHeatTransferPercentageMin, BaseHeatTransferPercentageMax);
                 byte transferAmount = heat[stripIndex][i] * baseTransfer * transferFactor / 100;
 
+                float removalFactor = random(HeatRemovalFactorMin, HeatRemovalFactorMax);
                 // Remove heat from this strip
-                heat[stripIndex][i] = qsub8(heat[stripIndex][i], transferAmount);
+                heat[stripIndex][i] = qsub8(heat[stripIndex][i], transferAmount * removalFactor);
 
                 // Add heat to the other strip
                 heat[otherStrip][i] = qadd8(heat[otherStrip][i], transferAmount);
