@@ -31,8 +31,6 @@ CRGB *leds[NUM_STRIPS];
 #define SparkStartingHeatMin 230
 #define SparkStartingHeatMax 255
 
-#define SparkLEDIndex 0
-
 #define BaseHeatTransferPercentageMin 5
 #define BaseHeatTransferPercentageMax 10
 
@@ -42,9 +40,9 @@ CRGB *leds[NUM_STRIPS];
 #define CenterSparkRate 255 // lower value is less chance 0 - 255
 #define CenterSparkIndex 0
 
-#define RandomOtherSpark 60 // lower value is less chance 0 - 255
+#define RandomOtherSpark 0 // lower value is less chance 0 - 255
 
-#define MAX_DISTANCE 25.0 // Maximum distance for heat transfer
+#define MAX_DISTANCE 30.0 // Maximum distance for heat transfer
 
 void setup()
 {
@@ -131,6 +129,40 @@ void setup()
     FastLED.setBrightness(BRIGHTNESS);
 }
 
+void loop()
+{
+    static byte **heat = allocateHeatArray();
+
+    // Center fuel
+    if (random8() < CenterSparkRate)
+    {
+        int randomLEDIndex_0 = random(0, 4);
+        int randomLEDIndex_1 = random(0, 4);
+        int randomLEDIndex_2 = random(0, 4);
+
+        heat[CenterSparkIndex][randomLEDIndex_0] = qadd8(heat[CenterSparkIndex][randomLEDIndex_0], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+        heat[CenterSparkIndex][randomLEDIndex_1] = qadd8(heat[CenterSparkIndex][randomLEDIndex_1], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+        heat[CenterSparkIndex][randomLEDIndex_2] = qadd8(heat[CenterSparkIndex][randomLEDIndex_2], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+    }
+
+    // Random spark somewhere else
+    if (random8() < RandomOtherSpark)
+    {
+        int randomStrip = random(0, NUM_STRIPS);
+        int ledSpark = random(0, 5);
+        heat[randomStrip][ledSpark] = qadd8(heat[randomStrip][ledSpark], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+    }
+
+    // Update fire simulation with heat transfer
+    for (int strip = 0; strip < NUM_STRIPS; strip++)
+    {
+        fireEffect(strip, heat);
+    }
+
+    // Display LEDs
+    FastLED.show();
+    delay(FireAnimationSpeed);
+}
 void loop()
 {
     static byte **heat = allocateHeatArray();
