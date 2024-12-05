@@ -1,6 +1,6 @@
 #include <FastLED.h>
 
-#define BRIGHTNESS 40   // Set brightness (0-255)
+#define BRIGHTNESS 10   // Set brightness (0-255)
 #define LED_TYPE WS2811 // Specify the LED type
 #define COLOR_ORDER BRG // Set the color order (BRG is typical for WS2811)
 

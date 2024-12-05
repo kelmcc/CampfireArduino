@@ -1,6 +1,6 @@
 #include <FastLED.h>
 
-#define BRIGHTNESS 40   // Set brightness (0-255)
+#define BRIGHTNESS 80   // Set brightness (0-255)
 #define LED_TYPE WS2811 // Specify the LED type
 #define COLOR_ORDER BRG // Set the color order (BRG is typical for WS2811)
 
@@ -32,12 +32,19 @@ CRGB *leds[NUM_STRIPS];
 #define FireCooldownRadiusMax 18
 
 // Sparks
-#define SparkStartingHeatMin 190
-#define SparkStartingHeatMax 200
+#define Band1SparkHeatMin 190
+#define Band1SparkHeatMax 200
 
-#define Band1SparkRate 240      // lower value is less chance 0 - 255
-#define Band2SparkRate 120      // lower value is less chance 0 - 255
-#define Band3SparkRate 60       // lower value is less chance 0 - 255
+#define Band2SparkHeatMin 40
+#define Band2SparkHeatMax 60
+
+#define Band3SparkHeatMin 30
+#define Band3SparkHeatMax 40
+
+#define Band1SparkRate 240 // lower value is less chance 0 - 255
+#define Band2SparkRate 120 // lower value is less chance 0 - 255
+#define Band3SparkRate 100  // lower value is less chance 0 - 255
+
 #define RandomOtherSparkRate 60 // lower value is less chance 0 - 255
 
 float maxRadius;
@@ -133,30 +140,30 @@ void loop()
 {
     static byte **heat = allocateHeatArray();
 
-    // Random spark somewhere else
+    /*// Random spark somewhere else
     if (random8() < RandomOtherSparkRate)
     {
         int randomStrip = random(0, NUM_STRIPS);
         int ledSpark = random(0, 5);
         heat[randomStrip][ledSpark] = qadd8(heat[randomStrip][ledSpark], random8(SparkStartingHeatMin, SparkStartingHeatMax));
-    }
+    }*/
 
     // Update fire simulation with heat transfer
     for (int strip = 0; strip < NUM_STRIPS; strip++)
     {
         if (random8() < Band1SparkRate)
         {
-            BandSparks(heat, strip, 0, 11);
+            BandSparks(heat, strip, 0, 11, random8(Band1SparkHeatMin, Band1SparkHeatMax));
         }
 
         if (random8() < Band2SparkRate)
         {
-            BandSparks(heat, strip, 12, 32);
+            BandSparks(heat, strip, 12, 32, random8(Band2SparkHeatMin, Band2SparkHeatMax));
         }
 
         if (random8() < Band3SparkRate)
         {
-            BandSparks(heat, strip, 32, 46);
+            BandSparks(heat, strip, 32, 46, random8(Band3SparkHeatMin, Band3SparkHeatMax));
         }
 
         fireEffect(strip, heat);
@@ -178,11 +185,11 @@ void fireEffect(int stripIndex, byte **heat)
     {
         if (i >= coolDownTopBand)
         {
-            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownBandTopMin, FireCooldownBandTopMax));
+            heat[stripIndex][i] = qsub8(heat[stripIndex][i], FireCooldownBandTopMin * (1 - i / numLeds));
         }
         else
         {
-            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownMin, FireCooldownMax));
+            heat[stripIndex][i] = qsub8(heat[stripIndex][i], FireCooldownMin * (1 - i / numLeds));
         }
     }
 
@@ -195,16 +202,16 @@ void fireEffect(int stripIndex, byte **heat)
     // Map heat to colors
     for (int i = 0; i < numLeds; i++)
     {
-        leds[stripIndex][i] = MyHeatColor(heat[stripIndex][i]);
+        leds[stripIndex][i] = HeatColor(heat[stripIndex][i]);
     }
 }
 
-void BandSparks(byte **heat, int stripIndex, float bandRaduisMin, float bandRaduisMax)
+void BandSparks(byte **heat, int stripIndex, float bandRaduisMin, float bandRaduisMax, byte sparkHeat)
 {
     if (stripRadii[stripIndex] < bandRaduisMax && stripRadii[stripIndex] > bandRaduisMin)
     {
-        int randomLEDIndex = random(0, 4);
-        heat[stripIndex][randomLEDIndex] = qadd8(heat[stripIndex][randomLEDIndex], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+        int randomLEDIndex = random(0, 2);
+        heat[stripIndex][randomLEDIndex] = qadd8(heat[stripIndex][randomLEDIndex], sparkHeat);
     }
 }
 
@@ -240,8 +247,8 @@ CRGB MyHeatColor(byte temperature)
     if (temperature > 200)
     {
         color.r = 255;
-        color.g = 255;
-        color.b = temperature - 128;
+        color.g = temperature - 280;
+        color.b = temperature - 280;
     }
     else if (temperature > 128)
     {
