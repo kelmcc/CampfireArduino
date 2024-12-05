@@ -10,7 +10,7 @@
 // Define the number of LEDs for each strip, their radii, and their data pins
 int numLedsPerStrip[NUM_STRIPS] = {36, 36, 36, 32, 32, 30, 32, 30, 32, 16, 24, 20, 28, 20, 20, 24, 20, 28, 16, 24, 20, 28, 16}; // Adjust for your setup
 
-float stripRadii[NUM_STRIPS] = {9, 10, 10, 20, 21, 25, 21, 28, 21, 41, 35, 40, 31, 38, 35, 38, 39, 33, 45, 29, 42, 29, 35}; // Radii for each strip (in cm)
+float stripRadii[NUM_STRIPS] = {9, 10, 10, 20, 21, 25, 21, 28, 21, 41, 35, 40, 31, 38, 35, 38, 39, 31, 45, 29, 42, 29, 35}; // Radii for each strip (in cm)
 int dataPins[NUM_STRIPS] = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44};    // Data pins for each strip
 
 // Define LED arrays for each strip
@@ -43,7 +43,7 @@ CRGB *leds[NUM_STRIPS];
 
 #define Band1SparkRate 240 // lower value is less chance 0 - 255
 #define Band2SparkRate 120 // lower value is less chance 0 - 255
-#define Band3SparkRate 100  // lower value is less chance 0 - 255
+#define Band3SparkRate 100 // lower value is less chance 0 - 255
 
 #define RandomOtherSparkRate 60 // lower value is less chance 0 - 255
 
@@ -140,14 +140,6 @@ void loop()
 {
     static byte **heat = allocateHeatArray();
 
-    /*// Random spark somewhere else
-    if (random8() < RandomOtherSparkRate)
-    {
-        int randomStrip = random(0, NUM_STRIPS);
-        int ledSpark = random(0, 5);
-        heat[randomStrip][ledSpark] = qadd8(heat[randomStrip][ledSpark], random8(SparkStartingHeatMin, SparkStartingHeatMax));
-    }*/
-
     // Update fire simulation with heat transfer
     for (int strip = 0; strip < NUM_STRIPS; strip++)
     {
@@ -202,7 +194,7 @@ void fireEffect(int stripIndex, byte **heat)
     // Map heat to colors
     for (int i = 0; i < numLeds; i++)
     {
-        leds[stripIndex][i] = HeatColor(heat[stripIndex][i]);
+        leds[stripIndex][i] = MyHeatColor(heat[stripIndex][i]);
     }
 }
 
@@ -243,21 +235,35 @@ CRGB MyHeatColor(byte temperature)
 {
     // Map heat values to RGB colors
     CRGB color = CRGB::Black;
+    temperature = constrain(temperature, 0, 255);
 
     if (temperature > 200)
     {
-        color.r = 255;
-        color.g = temperature - 280;
-        color.b = temperature - 280;
+        // High temperature: reddish-white
+        color.r = 230;
+        color.g = temperature - 100;
+        color.b = temperature - 200;
     }
     else if (temperature > 128)
     {
+        // Mid-high temperature: red to orange
         color.r = 255;
-        color.g = temperature - 128;
+        color.g = map(temperature, 128, 200, 60, 120);
+        color.b = 0;
+    }
+    else if (temperature > 64)
+    {
+        // Mid temperature: red to yellow
+        color.r = 255;
+        color.g = map(temperature, 64, 128, 30, 45);
+        color.b = 0;
     }
     else
     {
+        // Low temperature: dim red
         color.r = temperature;
+        color.g = 0;
+        color.b = 0;
     }
 
     return color;
