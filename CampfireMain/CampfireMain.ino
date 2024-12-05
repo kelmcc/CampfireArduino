@@ -1,6 +1,6 @@
 #include <FastLED.h>
 
-#define BRIGHTNESS 10   // Set brightness (0-255)
+#define BRIGHTNESS 60   // Set brightness (0-255)
 #define LED_TYPE WS2811 // Specify the LED type
 #define COLOR_ORDER BRG // Set the color order (BRG is typical for WS2811)
 
@@ -8,11 +8,11 @@
 #define NUM_STRIPS 23
 
 // Define the number of LEDs for each strip, their radii, and their data pins
-int numLedsPerStrip[NUM_STRIPS] = {36, 36, 36, 32, 32,   30, 32, 30, 32, 16,   24, 20, 28, 20, 20,   24, 20, 28, 16, 24,   20, 28, 16}; // Adjust for your setup
+int numLedsPerStrip[NUM_STRIPS] = {36, 36, 36, 32, 32, 30, 32, 30, 32, 16, 24, 20, 28, 20, 20, 24, 20, 28, 16, 24, 20, 28, 16}; // Adjust for your setup
 
-float stripRadii[NUM_STRIPS] = {9, 10, 10, 20, 21,   25, 21, 28, 21, 41,   35, 40, 31, 38, 35,   38, 39, 33, 45, 29,   42, 29, 35 };                   // Radii for each strip (in cm)
-float stripAngles[NUM_STRIPS] = {90, 332, 221, 171, 292,   262, 26, 71, 120, 252,   278, 304, 330, 350, 429,    96, 131, 149, 169, 194,   209, 230, 12}; // Angles for each strip (degrees)
-int dataPins[NUM_STRIPS] = {22, 23, 24, 25, 26,   27, 28, 29, 30, 31,   32, 33, 34, 35, 36,   37, 38, 39, 40, 41,   42, 43, 44};              // Data pins for each strip
+float stripRadii[NUM_STRIPS] = {9, 10, 10, 20, 21, 25, 21, 28, 21, 41, 35, 40, 31, 38, 35, 38, 39, 33, 45, 29, 42, 29, 35};                     // Radii for each strip (in cm)
+float stripAngles[NUM_STRIPS] = {90, 332, 221, 171, 292, 262, 26, 71, 120, 252, 278, 304, 330, 350, 429, 96, 131, 149, 169, 194, 209, 230, 12}; // Angles for each strip (degrees)
+int dataPins[NUM_STRIPS] = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44};                        // Data pins for each strip
 
 // Define LED arrays for each strip
 CRGB *leds[NUM_STRIPS];
@@ -25,24 +25,20 @@ CRGB *leds[NUM_STRIPS];
 
 #define FireCooldownBandPercentage 0.6 // 0 - 1
 
-#define FireCooldownMin 5
-#define FireCooldownMax 10
+#define FireCooldownMin 14
+#define FireCooldownMax 18
 
-#define SparkStartingHeatMin 230
-#define SparkStartingHeatMax 255
+#define SparkStartingHeatMin 190
+#define SparkStartingHeatMax 200
 
-#define BaseHeatTransferPercentageMin 5
-#define BaseHeatTransferPercentageMax 10
+#define BaseHeatTransferPercentageMin 0.03
 
-#define HeatRemovalFactorMin 1 // 0 - 1
-#define HeatRemovalFactorMax 1 // 0 - 1
+#define CenterSparkRate 200 // lower value is less chance 0 - 255
+#define RandomOtherSpark 60 // lower value is less chance 0 - 255
 
-#define CenterSparkRate 255 // lower value is less chance 0 - 255
-#define CenterSparkIndex 0
+#define MAX_DISTANCE 40.0 // Maximum distance for heat transfer
 
-#define RandomOtherSpark 0 // lower value is less chance 0 - 255
-
-#define MAX_DISTANCE 30.0 // Maximum distance for heat transfer
+float maxRadius;
 
 void setup()
 {
@@ -125,6 +121,8 @@ void setup()
         }
     }
 
+    findMaxRadius();
+
     FastLED.clear();
     FastLED.setBrightness(BRIGHTNESS);
 }
@@ -140,9 +138,9 @@ void loop()
         int randomLEDIndex_1 = random(0, 4);
         int randomLEDIndex_2 = random(0, 4);
 
-        heat[CenterSparkIndex][randomLEDIndex_0] = qadd8(heat[CenterSparkIndex][randomLEDIndex_0], random8(SparkStartingHeatMin, SparkStartingHeatMax));
-        heat[CenterSparkIndex][randomLEDIndex_1] = qadd8(heat[CenterSparkIndex][randomLEDIndex_1], random8(SparkStartingHeatMin, SparkStartingHeatMax));
-        heat[CenterSparkIndex][randomLEDIndex_2] = qadd8(heat[CenterSparkIndex][randomLEDIndex_2], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+        heat[0][randomLEDIndex_0] = qadd8(heat[0][randomLEDIndex_0], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+        heat[1][randomLEDIndex_1] = qadd8(heat[1][randomLEDIndex_1], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+        heat[2][randomLEDIndex_2] = qadd8(heat[2][randomLEDIndex_2], random8(SparkStartingHeatMin, SparkStartingHeatMax));
     }
 
     // Random spark somewhere else
@@ -189,39 +187,28 @@ void fireEffect(int stripIndex, byte **heat)
         heat[stripIndex][i] = (heat[stripIndex][i - 1] + heat[stripIndex][i - 1]) / 2;
     }
 
-    // Heat transfer between strips based on distances
+    // Simplified heat transfer logic between strips
     for (int otherStrip = 0; otherStrip < NUM_STRIPS; otherStrip++)
     {
         if (otherStrip == stripIndex)
             continue; // Skip self
 
+        // Skip heat transfer if distance exceeds the maximum allowed
         float dist = calculateDistance(stripIndex, otherStrip);
-        if (dist < MAX_DISTANCE)
+        if (dist >= MAX_DISTANCE)
+            continue;
+
+        // Simplify by transferring heat only to the first few LEDs of the other strip
+        int transferLimit = min(numLedsPerStrip[stripIndex], numLedsPerStrip[otherStrip]) / 2;
+
+        // Transfer heat for the limited range of LEDs
+        for (int i = 0; i < transferLimit; i++)
         {
-            // Scale heat transfer percentage based on distance (closer = more transfer)
-            float transferFactor = 1.0 - (dist / MAX_DISTANCE);
-            transferFactor = constrain(transferFactor, 0.0, 1.0); // Ensure between 0 and 1
+            float transferFactor = (stripRadii[otherStrip] / maxRadius);
+            byte transferAmount = heat[stripIndex][i] * BaseHeatTransferPercentageMin * transferFactor;
 
-            // Iterate over the LEDs in the current strip
-            for (int i = 0; i < numLedsPerStrip[stripIndex]; i++)
-            {
-                if (i >= numLedsPerStrip[otherStrip])
-                {
-                    // Stop the loop if the current index exceeds the other strip's LEDs
-                    break;
-                }
-
-                // Transfer heat only if the other strip has an LED at this index
-                int baseTransfer = random(BaseHeatTransferPercentageMin, BaseHeatTransferPercentageMax);
-                byte transferAmount = heat[stripIndex][i] * baseTransfer * transferFactor / 100;
-
-                float removalFactor = random(HeatRemovalFactorMin, HeatRemovalFactorMax);
-                // Remove heat from this strip
-                heat[stripIndex][i] = qsub8(heat[stripIndex][i], transferAmount * removalFactor);
-
-                // Add heat to the other strip
-                heat[otherStrip][i] = qadd8(heat[otherStrip][i], transferAmount);
-            }
+            // Add heat to the other strip
+            heat[otherStrip][i] = qadd8(heat[otherStrip][i], transferAmount);
         }
     }
 
@@ -257,6 +244,19 @@ byte **allocateHeatArray()
         memset(heat[i], 0, numLedsPerStrip[i]); // Initialize to zero
     }
     return heat;
+}
+
+void findMaxRadius()
+{
+    maxRadius = stripRadii[0]; // Initialize to the first element of the array
+
+    for (int i = 1; i < NUM_STRIPS; i++)
+    {
+        if (stripRadii[i] > maxRadius)
+        {
+            maxRadius = stripRadii[i];
+        }
+    }
 }
 
 CRGB MyHeatColor(byte temperature)
