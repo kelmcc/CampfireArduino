@@ -20,12 +20,13 @@ CRGB *leds[NUM_STRIPS];
 #define FireAnimationSpeed 30
 
 // Cooldown
-#define FireCooldownBandTopMin 25
-#define FireCooldownBandTopMax 30
+#define FireCooldownBandTopMin 15
+#define FireCooldownBandTopMax 20
 
 #define FireCooldownBandPercentage 0.9 // 0 - 1
+#define FireCooldownBandPercentage 0.9 // 0 - 1
 
-#define FireCooldownMin 8
+#define FireCooldownMin 5
 #define FireCooldownMax 10
 
 #define FireCooldownRadiusMin 14
@@ -35,12 +36,15 @@ CRGB *leds[NUM_STRIPS];
 #define SparkStartingHeatMin 190
 #define SparkStartingHeatMax 200
 
-#define Band1SparkRate 240      // lower value is less chance 0 - 255
+#define Band1SparkRate 5      // lower value is less chance 0 - 255
 #define Band2SparkRate 120      // lower value is less chance 0 - 255
 #define Band3SparkRate 60       // lower value is less chance 0 - 255
 #define RandomOtherSparkRate 60 // lower value is less chance 0 - 255
 
+#define TIMER_INTERVAL 500
+
 float maxRadius;
+unsigned long previousMillis = 0;
 
 void setup()
 {
@@ -131,36 +135,45 @@ void setup()
 
 void loop()
 {
+    unsigned long currentMillis = millis();
     static byte **heat = allocateHeatArray();
 
-    // Random spark somewhere else
-    if (random8() < RandomOtherSparkRate)
-    {
-        int randomStrip = random(0, NUM_STRIPS);
-        int ledSpark = random(0, 5);
-        heat[randomStrip][ledSpark] = qadd8(heat[randomStrip][ledSpark], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+//    // Random spark somewhere else
+//    if (random8() < RandomOtherSparkRate)
+//    {
+//        int randomStrip = random(0, NUM_STRIPS);
+//        int ledSpark = random(0, 5);
+//        heat[randomStrip][ledSpark] = qadd8(heat[randomStrip][ledSpark], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+//    }
+
+//    // Update fire simulation with heat transfer
+//    for (int strip = 0; strip < NUM_STRIPS; strip++)
+//    {
+//        if (random8() < Band1SparkRate)
+//        {
+//            BandSparks(heat, strip, 0, 11);
+//        }
+//
+//        if (random8() < Band2SparkRate)
+//        {
+//            BandSparks(heat, strip, 12, 32);
+//        }
+//
+//        if (random8() < Band3SparkRate)
+//        {
+//            BandSparks(heat, strip, 32, 46);
+//        }
+//
+//        //fireEffect(strip, heat);
+//    }
+
+    if (currentMillis - previousMillis >= TIMER_INTERVAL) {
+        previousMillis = currentMillis; // Update the last timer event time
+
+        // Perform the timed operation
+        BandSparks(heat, 0, 0, 11);
     }
-
-    // Update fire simulation with heat transfer
-    for (int strip = 0; strip < NUM_STRIPS; strip++)
-    {
-        if (random8() < Band1SparkRate)
-        {
-            BandSparks(heat, strip, 0, 11);
-        }
-
-        if (random8() < Band2SparkRate)
-        {
-            BandSparks(heat, strip, 12, 32);
-        }
-
-        if (random8() < Band3SparkRate)
-        {
-            BandSparks(heat, strip, 32, 46);
-        }
-
-        fireEffect(strip, heat);
-    }
+    fireEffect(0, heat);
 
     // Display LEDs
     FastLED.show();
@@ -178,11 +191,11 @@ void fireEffect(int stripIndex, byte **heat)
     {
         if (i >= coolDownTopBand)
         {
-            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownBandTopMin, FireCooldownBandTopMax));
+            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random(FireCooldownBandTopMin,FireCooldownBandTopMax) * (1-i/numLeds));
         }
         else
         {
-            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random8(FireCooldownMin, FireCooldownMax));
+            heat[stripIndex][i] = qsub8(heat[stripIndex][i], random(FireCooldownMin,FireCooldownMax) * (1-i/numLeds));
         }
     }
 
@@ -203,8 +216,8 @@ void BandSparks(byte **heat, int stripIndex, float bandRaduisMin, float bandRadu
 {
     if (stripRadii[stripIndex] < bandRaduisMax && stripRadii[stripIndex] > bandRaduisMin)
     {
-        int randomLEDIndex = random(0, 4);
-        heat[stripIndex][randomLEDIndex] = qadd8(heat[stripIndex][randomLEDIndex], random8(SparkStartingHeatMin, SparkStartingHeatMax));
+        int randomLEDIndex = random(0, 0);
+        heat[stripIndex][randomLEDIndex] = SparkStartingHeatMin;
     }
 }
 
