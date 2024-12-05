@@ -163,34 +163,6 @@ void loop()
     FastLED.show();
     delay(FireAnimationSpeed);
 }
-void loop()
-{
-    static byte **heat = allocateHeatArray();
-
-    // Center fuel
-    if (random8() < CenterSparkRate)
-    {
-        heat[CenterSparkIndex][SparkLEDIndex] = qadd8(heat[CenterSparkIndex][SparkLEDIndex], random8(SparkStartingHeatMin, SparkStartingHeatMax));
-    }
-
-    // Random spark somewhere else
-    if (random8() < RandomOtherSpark)
-    {
-        int randomStrip = random(0, NUM_STRIPS);
-        int ledSpark = random(0, 5);
-        heat[randomStrip][ledSpark] = qadd8(heat[randomStrip][ledSpark], random8(SparkStartingHeatMin, SparkStartingHeatMax));
-    }
-
-    // Update fire simulation with heat transfer
-    for (int strip = 0; strip < NUM_STRIPS; strip++)
-    {
-        fireEffect(strip, heat);
-    }
-
-    // Display LEDs
-    FastLED.show();
-    delay(FireAnimationSpeed);
-}
 
 void fireEffect(int stripIndex, byte **heat)
 {
