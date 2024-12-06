@@ -1,6 +1,6 @@
 #include <FastLED.h>
 
-#define BRIGHTNESS 80   // Set brightness (0-255)
+#define BRIGHTNESS 100   // Set brightness (0-255)
 #define LED_TYPE WS2811 // Specify the LED type
 #define COLOR_ORDER BRG // Set the color order (BRG is typical for WS2811)
 
@@ -11,7 +11,7 @@
 int numLedsPerStrip[NUM_STRIPS] = {36, 36, 36, 32, 32, 30, 32, 30, 32, 16, 24, 20, 28, 20, 20, 24, 20, 28, 16, 24, 20, 28, 16}; // Adjust for your setup
 
 float stripRadii[NUM_STRIPS] = {9, 10, 10, 20, 21, 25, 21, 28, 21, 41, 35, 40, 31, 38, 35, 38, 39, 31, 45, 29, 42, 29, 35}; // Radii for each strip (in cm)
-int dataPins[NUM_STRIPS] = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44};    // Data pins for each strip
+int dataPins[NUM_STRIPS] = {22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 45, 36, 37, 38, 39, 40, 41, 42, 43, 44};    // Data pins for each strip
 
 // Define LED arrays for each strip
 CRGB *leds[NUM_STRIPS];
@@ -48,6 +48,8 @@ CRGB *leds[NUM_STRIPS];
 #define RandomOtherSparkRate 60 // lower value is less chance 0 - 255
 
 float maxRadius;
+int Brightness;
+float lastNormDist = 1;
 
 void setup()
 {
@@ -98,7 +100,7 @@ void setup()
             FastLED.addLeds<LED_TYPE, 34, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
             break;
         case 35:
-            FastLED.addLeds<LED_TYPE, 35, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
+            FastLED.addLeds<LED_TYPE, 45, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
             break;
         case 36:
             FastLED.addLeds<LED_TYPE, 36, COLOR_ORDER>(leds[strip], numLedsPerStrip[strip]).setCorrection(TypicalLEDStrip);
@@ -131,7 +133,7 @@ void setup()
     }
 
     findMaxRadius();
-
+    Serial.begin(9600);
     FastLED.clear();
     FastLED.setBrightness(BRIGHTNESS);
 }
@@ -139,6 +141,15 @@ void setup()
 void loop()
 {
     static byte **heat = allocateHeatArray();
+
+    if (Serial.available() > 0)
+    {
+      String data = Serial.readStringUntil('\n'); // Read until newline
+      int recieved = data.toInt(); // Convert to float
+      lastNormDist = recieved/(float)255;
+    }
+    
+    Brightness = map(lastNormDist, 0, 255, 70, 100); // brightness range 70 - 100 alter
 
     // Update fire simulation with heat transfer
     for (int strip = 0; strip < NUM_STRIPS; strip++)
@@ -161,6 +172,8 @@ void loop()
         fireEffect(strip, heat);
     }
 
+    FastLED.setBrightness(Brightness);
+    
     // Display LEDs
     FastLED.show();
     delay(FireAnimationSpeed);
@@ -255,7 +268,7 @@ CRGB MyHeatColor(byte temperature)
     {
         // Mid temperature: red to yellow
         color.r = 255;
-        color.g = map(temperature, 64, 128, 30, 45);
+        color.g = map(temperature, 64, 128, 0, 50);
         color.b = 0;
     }
     else
